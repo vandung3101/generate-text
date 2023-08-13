@@ -20,50 +20,18 @@ st.info("This app is a NLP application that can generate sentences from a given 
 VI_MODEL_API_URL = "https://api-inference.huggingface.co/models/vandung/t5paraphase-finetuned"
 EN_MODEL_API_URL_1 = "https://api-inference.huggingface.co/models/ihgn/similar-questions"
 EN_MODEL_API_URL_2 = "https://api-inference.huggingface.co/models/ihgn/gpt3-paraphrase"
-headers = {"Authorization": "Bearer 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"}
 
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 
-def query(payload, API_URL=EN_MODEL_API_URL_2):
-    response = requests.post(API_URL, headers=headers, json=payload)
-    return response.json()
+# Load the model and tokenizer
+model_name_vi = "vandung/t5paraphase-finetuned"
+model_vi = AutoModelForSeq2SeqLM.from_pretrained(model_name_vi)
+tokenizer_vi = AutoTokenizer.from_pretrained(model_name_vi)
 
-
-def text2text(sentence, maxnewtokens, API_URL=EN_MODEL_API_URL_2):
-    payload = {"inputs": sentence,
-               "parameters": {"max_new_tokens": maxnewtokens, "do_sample": True, "num_return_sequences": 5, "temperature": 1.0},
-               "options": {"wait_for_model": True}}
-    response = query(payload, API_URL=API_URL)
-    return response
-
-
-# def translate(sentence, source_lang, target_lang):
-#     key = "83fa28a35f3e453d9722f9495c65cf46"
-#     endpoint = "https://api.cognitive.microsofttranslator.com/"
-#     location = "eastus"
-
-#     path = '/translate'
-#     constructed_url = endpoint + path
-#     params = {
-#         'api-version': '3.0',
-#         'from': source_lang,
-#         'to': [target_lang]
-#     }
-
-#     headers = {
-#         'Ocp-Apim-Subscription-Key': key,
-#         'Ocp-Apim-Subscription-Region': location,
-#         'Content-type': 'application/json',
-#         'X-ClientTraceId': str(uuid.uuid4())
-#     }
-
-#     body = [{
-#         'text': sentence
-#     }]
-
-#     request = requests.post(
-#         constructed_url, params=params, headers=headers, json=body)
-#     response = request.json()
-#     return response[0]["translations"][0]["text"]
+def text2text(sentence, max_new_tokens, API_URL):
+    input_ids = tokenizer_vi.encode(sentence, return_tensors="pt")
+    outputs = model_vi.generate(input_ids, max_length=max_new_tokens, do_sample=True, num_return_sequences=5, temperature=1.0)
+    return [tokenizer_vi.decode(output_id, skip_special_tokens=True) for output_id in outputs]
 
 st.sidebar.title("Select language")
 language = st.sidebar.radio(
